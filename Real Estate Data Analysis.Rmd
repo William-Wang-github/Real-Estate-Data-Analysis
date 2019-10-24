@@ -1,0 +1,272 @@
+---
+title: "Real Estate Data Analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+##Code
+install.packages("tidyverse")
+install.packages("ggpubr")
+install.packages("ggplot2")
+library(tidyverse)
+library(ggplot2)
+library(ggpubr)
+
+
+realestatedataWW <- read.csv(paste0("reale.csv"))
+
+
+boxplot(realestatedataWW$sale.price.in..100000, xlab = "Sale Price Data",ylab = "Sale price in $10000", main = "Boxplots of sale price with mild outliers, 8818")
+
+##Sale price filtering
+saleoutliersWW <- data.frame(boxplot.stats(realestatedataWW$sale.price.in..100000))
+(filter(saleoutliersWW, `out` > 18))$out
+(filter(saleoutliersWW, `out` > 18) - saleoutliersWW$stats[5])$out
+(filter(saleoutliersWW, `out` < 7.65))$out
+(filter(saleoutliersWW, `out` < 7.65) - saleoutliersWW$stats[1])$out
+filtereddataWW <- filter(realestatedataWW, `sale.price.in..100000`<32)
+
+##List price vs Sale price plot
+Neighbourhood <- filtereddataWW$location
+ggplot(filtereddataWW, aes(x = list.price.in..100000, y = sale.price.in..100000, group = Neighbourhood))+ geom_point(aes(shape = Neighbourhood, colour = Neighbourhood)) + theme_bw() +theme(legend.position = c(0.8, 0.2),legend.title = element_text(size=12,face="bold"))+ geom_smooth(method = "lm") + ggtitle("Plot of the list price vs sale price, 8818") + xlab("list price in $100000") + ylab("sale price in $100000")
+
+
+##sale price vs tax plot, note missing 2 points as they are NA in taxes
+Neighbourhood <- filtereddataWW$location
+ggplot(filtereddataWW, aes(x = taxes, y = sale.price.in..100000))+ geom_point(aes(shape = Neighbourhood, colour = Neighbourhood)) + theme_bw()+ theme(legend.position = c(0.8, 0.2),legend.title = element_text(size=12,face="bold")) + geom_smooth(method = "lm") + ggtitle("Plot of the sale price vs taxes, 8818") + xlab("taxes") + ylab("sale price in $100000")
+
+
+##normal qq plot
+qqnorm(filtereddataWW$sale.price.in..100000, main = "Normal QQ plot of sale price, 8818")
+qqline(filtereddataWW$sale.price.in..100000)
+
+
+##qq plot log 10
+qqnorm(log10(filtereddataWW$sale.price.in..100000), main = "Normal QQ plot of logarithm base 10 sale price, 8818")
+qqline(log10(filtereddataWW$sale.price.in..100000))
+
+
+##qq plot sqrt
+qqnorm(sqrt(filtereddataWW$sale.price.in..100000), main = "Normal QQ plot of square root sale price, 8818")
+qqline(sqrt(filtereddataWW$sale.price.in..100000))
+
+
+##qqplot inverse
+qqnorm((filtereddataWW$sale.price.in..100000)^(-1), main = "Normal QQ plot of inverse sale price, 8818")
+qqline((filtereddataWW$sale.price.in..100000)^(-1))
+
+
+##lin. model of list and sale
+filteredsaleWW <- filtereddataWW$sale.price.in..100000
+filteredlistWW <- filtereddataWW$list.price.in..100000
+linmodlistsaleWW <- lm(filteredsaleWW ~ filteredlistWW)
+summary(linmodlistsaleWW)
+confint(linmodlistsaleWW, level = 0.95)
+
+##lin. model of list and sale X neighbourhoods
+XfilteredsaleWW <- filter(filtereddataWW, `location` == "X")$sale.price.in..100000
+XfilteredlistWW <- filter(filtereddataWW, `location` == "X")$list.price.in..100000
+XlinmodlistsaleWW <- lm(XfilteredsaleWW  ~ XfilteredlistWW )
+summary(XlinmodlistsaleWW)
+confint(XlinmodlistsaleWW, level = 0.95)
+
+##lin. model of list and sale O neighbourhood
+OfilteredsaleWW <- filter(filtereddataWW, `location` == "O")$sale.price.in..100000
+OfilteredlistWW <- filter(filtereddataWW, `location` == "O")$list.price.in..100000
+OlinmodlistsaleWW <- lm(OfilteredsaleWW  ~ OfilteredlistWW )
+summary(OlinmodlistsaleWW)
+confint(OlinmodlistsaleWW, level = 0.95)
+
+
+
+###density plots of question 2
+plot(density((filtereddataWW$sale.price.in..100000)), main = "Density plot of sale price, 8818")
+plot(density(log10(filtereddataWW$sale.price.in..100000)), main = "Density plot of logarithm base 10 sale price, 8818")
+plot(density(sqrt(filtereddataWW$sale.price.in..100000)), main = "Density plot of square root sale price, 8818")
+plot(density(1/(filtereddataWW$sale.price.in..100000)), main = "Density plot of inverse sale price, 8818")
+
+##Question 5
+
+#show equality of sample variances
+var.test(list.price.in..100000 ~ location, filtereddataWW)
+
+	F test to compare two variances
+
+data:  list.price.in..100000 by location
+F = 1.4117, num df = 101, denom df = 58, p-value = 0.1532
+alternative hypothesis: true ratio of variances is not equal to 1
+95 percent confidence interval:
+ 0.8780212 2.2049530
+sample estimates:
+ratio of variances 
+          1.411699 
+          
+#sample variances of list price
+var(XfilteredlistWW)
+var(OfilteredlistWW)
+      
+#confidence interval
+qt(0.05,159)
+##end of question 5
+
+
+
+
+##Question 6
+#Normality
+residualfittedWW <- residuals(linmodlistsaleWW)
+qqnorm(residualfittedWW, main = "Normal QQ Plot for residuals of all data, 8818")
+qqline(residualfittedWW)
+plot(density(residualfittedWW), main = "Density plot of Residuals for all data, 8818")
+
+#Independence
+cor.test(residualfittedWW,filtereddataWW$sale.price.in..100000) 
+
+	Pearson's product-moment correlation
+
+data:  residualfittedWW and filtereddataWW$sale.price.in..100000
+t = 2.0698, df = 159, p-value = 0.04009
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ 0.007487217 0.308910097
+sample estimates:
+      cor 
+0.1619745 
+
+cor.test(residualfittedWW,filtereddataWW$list.price.in..100000) 
+
+	Pearson's product-moment correlation
+
+data:  residualfittedWW and filtereddataWW$list.price.in..100000
+t = 1.8102e-15, df = 159, p-value = 1
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ -0.1546749  0.1546749
+sample estimates:
+         cor 
+1.435603e-16 
+
+
+#Linearity, shown with residual plot
+linreslistWW <- lm(residualfittedWW ~ filteredlistWW)
+predictedWW<- predict(linmodlistsaleWW)
+ggplot(filtereddataWW, aes(x = predictedWW,y = residualfittedWW)) + geom_point(alpha = 0.3) + theme_bw() + geom_smooth(method = "lm") + ggtitle("Residual plot for all data, 8818") + xlab("List price in $100000") + ylab("Residuals")+ geom_point(aes(y = residualfittedWW ), shape = 1) + geom_segment(aes(xend = predictedWW, yend = predict(linreslistWW)))
+
+#Equality
+var.test(filteredsaleWW,residualfittedWW)
+
+	F test to compare two variances
+
+data:  filteredsaleWW and residualfittedWW
+F = 38.116, num df = 160, denom df = 160, p-value < 2.2e-16
+alternative hypothesis: true ratio of variances is not equal to 1
+95 percent confidence interval:
+ 27.92796 52.02047
+sample estimates:
+ratio of variances 
+          38.11595 
+          
+var.test(filteredlistWW,residualfittedWW)
+	F test to compare two variances
+
+data:  filteredlistWW and residualfittedWW
+F = 43.997, num df = 160, denom df = 160, p-value < 2.2e-16
+alternative hypothesis: true ratio of variances is not equal to 1
+95 percent confidence interval:
+ 32.23738 60.04748
+sample estimates:
+ratio of variances 
+          43.99742 
+          
+#Anova test
+anova(linmodlistsaleWW)
+Analysis of Variance Table
+
+Response: filteredsaleWW
+                Df Sum Sq Mean Sq F value    Pr(>F)    
+filteredlistWW   1 3339.9  3339.9  5901.4 < 2.2e-16 ***
+Residuals      159   90.0     0.6                      
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+> anova(linressaleWW)
+Analysis of Variance Table
+
+Response: residualfittedWW
+                Df Sum Sq Mean Sq F value  Pr(>F)  
+filteredsaleWW   1  2.361  2.3609  4.2839 0.04009 *
+Residuals      159 87.625  0.5511                  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+#Mean
+mean(residualfittedWW)
+## end of above section
+
+predictedWW<- predict(linmodlistsaleWW)
+ggplot(filtereddataWW, aes(x = predictedWW,y = residualfittedWW)) + geom_point(alpha = 0.3) + theme_bw() + geom_smooth(method = "lm") + ggtitle("Residual plot for all data, 8818") + xlab("Sale price in $100000") + ylab("Residuals")+ geom_point(aes(y = residualfittedWW ), shape = 1)
+
+
+
+##scatterplot of neighbourhood X
+XfilteredWW <- filter(filtereddataWW, `location` == "X")
+ggplot(XfilteredWW, aes(x = list.price.in..100000, y = sale.price.in..100000))+ geom_point() + theme_bw()  + geom_smooth(method = "lm") + ggtitle("Plot of the list price vs sale price of Neighbourhood X, 8818") + xlab("list price in $100000") + ylab("sale price in $100000")
+
+##scatterplot of neighbourhood O
+OfilteredWW <- filter(filtereddataWW, `location` == "O")
+ggplot(OfilteredWW, aes(x = list.price.in..100000, y = sale.price.in..100000))+ geom_point() + theme_bw()  + geom_smooth(method = "lm") + ggtitle("Plot of the list price vs sale price of Neighbourhood O, 8818") + xlab("list price in $100000") + ylab("sale price in $100000")
+
+##Residual and normal qq of residuals of both neighbourhoods
+XresidualfittedWW <- residuals(XlinmodlistsaleWW)
+qqnorm(XresidualfittedWW, main = "Normal QQ Plot for residuals of Neighbourhood X, 8818")
+qqline(XresidualfittedWW)
+
+
+OresidualfittedWW <- residuals(OlinmodlistsaleWW)
+qqnorm(OresidualfittedWW, main = "Normal QQ Plots for residuals of Neighbourhood O, 8818")
+qqline(OresidualfittedWW)
+
+
+
+
+
+
+
+
+##Residual plot of list vs residual NX
+ggplot(XfilteredWW, aes(x = list.price.in..100000,y = XresidualfittedWW)) + geom_point(alpha = 0.3) + theme_bw() + geom_hline(aes(yintercept = 0)) + ggtitle("Plot of the Residuals for Neighbourhood X, 8818") + xlab("List price in $100000") + ylab("Residuals")+ geom_point(aes(y = XresidualfittedWW ), shape = 1) + geom_segment(aes(xend = XfilteredlistWW, yend = 0))
+
+
+XlinressaleWW <- lm(XresidualfittedWW ~ XfilteredsaleWW)
+ggplot(XfilteredWW, aes(x = sale.price.in..100000,y = XresidualfittedWW)) + geom_point(alpha = 0.3) + theme_bw() + geom_smooth(method = "lm") + ggtitle("Plot of the Residuals for Neighbourhood X, 8818") + xlab("Sale price in $100000") + ylab("Residuals")+ geom_point(aes(y = XresidualfittedWW ), shape = 1) + geom_segment(aes(xend = XfilteredsaleWW, yend = predict(XlinressaleWW)))
+
+##null says variance is equal, thus since p value is <0.05 we rejct and say variance not equal
+var.test(XfilteredsaleWW,XresidualfittedWW)
+
+
+##histogram of data
+hist(filtereddataWW$sale.price.in..100000)
+hist(log10(filtereddataWW$sale.price.in..100000))
+hist(sqrt(filtereddataWW$sale.price.in..100000))
+hist(1/(filtereddataWW$sale.price.in..100000))
+
+
+##lin. model of tax and sale
+linmodtaxsaleWW <- lm(filtereddataWW$sale.price.in..100000 ~ filtereddataWW$taxes)
+summary(linmodtaxsaleWW)
+
